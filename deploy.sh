@@ -14,7 +14,7 @@ install_deps() {
 
     if ! command -v go >/dev/null 2>&1; then
         log "安装 Go..."
-        curl -fsSL https://go.dev/dl/go1.21.0.linux-amd64.tar.gz | sudo tar -C /usr/local -xzf -
+        curl -fsSL https://mirrors.aliyun.com/golang/go1.21.0.linux-amd64.tar.gz | sudo tar -C /usr/local -xzf -
         echo 'export PATH=$PATH:/usr/local/go/bin' | sudo tee /etc/profile.d/go.sh
         export PATH=$PATH:/usr/local/go/bin
     fi
