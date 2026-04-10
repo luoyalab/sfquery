@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  app:
+    build: .
+    container_name: sfquery-app
+    restart: unless-stopped
+    expose:
+      - "8080"
+    environment:
+      - SF_PARTNER_ID=XMWL43MUNA8
+      - SF_CHECK_WORD=PWc8G05FTdp28Oi4ZgrCGUP9SFmgKphS
+
+  nginx:
+    image: nginx:alpine
+    container_name: sfquery-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - app
+
+  certbot:
+    image: certbot/certbot
+    container_name: sfquery-certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h; done'"

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>顺丰路由查询</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --sf-red: #e2231a;
+  --sf-dark: #1a1a2e;
+  --bg: #f4f5f9;
+  --card: #fff;
+  --border: #eaecf2;
+  --text: #1a1a2e;
+  --muted: #8c92a4;
+  --success: #34c759;
+  --warning: #ff9f0a;
+  --danger: #ff3b30;
+  --radius: 14px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Noto Sans SC', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ---------- header ---------- */
+.header {
+  background: var(--sf-red);
+  padding: 26px 0 44px;
+  text-align: center;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  width: 340px; height: 340px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.06);
+  top: -120px; right: -80px;
+}
+.header::after {
+  content: '';
+  position: absolute;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.05);
+  bottom: -80px; left: -40px;
+}
+.header-inner { position: relative; z-index: 1; }
+.logo { font-size: 22px; font-weight: 700; letter-spacing: 3px; margin-bottom: 4px; }
+.tagline { font-size: 12px; opacity: .75; letter-spacing: 1px; }
+
+/* ---------- layout ---------- */
+.wrap {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0 16px 60px;
+}
+
+/* ---------- search card ---------- */
+.search-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 24px 22px 20px;
+  margin-top: -24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.08);
+  position: relative;
+}
+
+.seg-group {
+  display: flex;
+  background: #f2f3f7;
+  border-radius: 9px;
+  padding: 3px;
+  margin-bottom: 16px;
+  gap: 2px;
+}
+.seg-btn {
+  flex: 1;
+  height: 34px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all .2s;
+}
+.seg-btn.active {
+  background: var(--card);
+  color: var(--sf-red);
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+
+.field-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.field label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  letter-spacing: .3px;
+}
+.field input {
+  height: 44px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 0 13px;
+  font-size: 15px;
+  color: var(--text);
+  background: #fafbfc;
+  outline: none;
+  transition: border-color .15s, background .15s;
+  width: 100%;
+}
+.field input:focus {
+  border-color: var(--sf-red);
+  background: #fff;
+}
+.field input::placeholder { color: #c5c9d4; font-size: 14px; }
+
+.btn-query {
+  width: 100%;
+  height: 46px;
+  background: var(--sf-red);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: opacity .15s, transform .1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-query:hover { opacity: .9; }
+.btn-query:active { transform: scale(.98); }
+.btn-query:disabled { opacity: .55; cursor: not-allowed; }
+
+/* ---------- result area ---------- */
+.result { margin-top: 18px; }
+
+.skeleton {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 24px 22px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.06);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.skel-line {
+  height: 14px;
+  border-radius: 7px;
+  background: #eaecf2;
+  margin-bottom: 12px;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+
+/* --- error banner --- */
+.error-banner {
+  background: #fff5f5;
+  border: 1.5px solid #ffd0cc;
+  border-radius: 12px;
+  padding: 14px 18px;
+  color: #b91c1c;
+  font-size: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.6;
+}
+.error-icon { font-size: 17px; flex-shrink: 0; margin-top: 1px; }
+
+/* --- waybill card --- */
+.waybill {
+  background: var(--card);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,.07);
+}
+
+.wb-header {
+  background: var(--sf-dark);
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.wb-no-label { font-size: 11px; color: rgba(255,255,255,.45); margin-bottom: 4px; letter-spacing: .3px; }
+.wb-no { font-size: 18px; color: #fff; font-weight: 700; letter-spacing: .5px; }
+.wb-total { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 2px; }
+
+.status-pill {
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1.5px solid transparent;
+}
+.status-delivered  { background: rgba(52,199,89,.15);  border-color: rgba(52,199,89,.4);  color: #22a849; }
+.status-delivering { background: rgba(255,159,10,.15); border-color: rgba(255,159,10,.4); color: #d97706; }
+.status-exception  { background: rgba(255,59,48,.15);  border-color: rgba(255,59,48,.4);  color: #dc2626; }
+.status-returning  { background: rgba(175,82,222,.15); border-color: rgba(175,82,222,.4); color: #7c3aed; }
+.status-transit    { background: rgba(10,132,255,.15); border-color: rgba(10,132,255,.4); color: #1d6fba; }
+.status-collected  { background: rgba(100,210,255,.15);border-color: rgba(100,210,255,.4);color: #0284c7; }
+.status-unknown    { background: rgba(142,142,147,.15);border-color: rgba(142,142,147,.4);color: #555; }
+
+/* --- timeline --- */
+.timeline { padding: 20px 22px 4px; }
+
+.t-item {
+  display: flex;
+  gap: 14px;
+  position: relative;
+}
+.t-item:not(:last-child) .t-line {
+  position: absolute;
+  left: 8px;
+  top: 17px;
+  width: 2px;
+  bottom: 0;
+  background: #eaecf2;
+  z-index: 0;
+}
+.t-dot-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 18px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.t-dot {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 3px solid #d5d9e6;
+  background: #f4f5f9;
+  flex-shrink: 0;
+}
+.t-dot.active {
+  background: var(--sf-red);
+  border-color: var(--sf-red);
+  box-shadow: 0 0 0 4px rgba(226,35,26,.15);
+}
+.t-body {
+  flex: 1;
+  padding-bottom: 22px;
+}
+.t-remark {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+.t-item:first-child .t-remark { color: var(--sf-red); }
+.t-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.t-meta .ico { font-size: 11px; }
+
+.empty-routes {
+  padding: 32px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ---------- footer ---------- */
+.footer {
+  text-align: center;
+  padding: 32px 16px 16px;
+  font-size: 12px;
+  color: #c0c4d2;
+}
+.footer b { color: var(--sf-red); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">SF EXPRESS</div>
+    <div class="tagline">顺丰速运 · 路由轨迹查询</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="search-card">
+    <div class="seg-group" id="segGroup">
+      <button class="seg-btn active" data-type="1">运单号查询</button>
+      <button class="seg-btn" data-type="2">订单号查询</button>
+    </div>
+
+    <div class="field-row">
+      <div class="field" style="flex:3">
+        <label>快递单号 / 运单号</label>
+        <input id="iTrackNo" type="text" placeholder="请输入顺丰运单号" />
+      </div>
+      <div class="field" style="flex:1.5">
+        <label>手机后四位（选填）</label>
+        <input id="iPhone" type="text" maxlength="4" placeholder="1234" />
+      </div>
+    </div>
+
+    <button class="btn-query" id="btnQuery" onclick="doQuery()">
+      <span id="btnIcon">🔍</span>
+      <span id="btnText">查 询</span>
+    </button>
+  </div>
+
+  <div class="result" id="result"></div>
+</div>
+
+<footer class="footer">
+  接口服务码 <b>EXP_RECE_SEARCH_ROUTES</b> · 生产环境
+</footer>
+
+<script>
+const SEG = document.getElementById('segGroup');
+SEG.querySelectorAll('.seg-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    SEG.querySelectorAll('.seg-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+  });
+});
+
+document.getElementById('iTrackNo').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doQuery();
+});
+
+async function doQuery() {
+  const trackNo = document.getElementById('iTrackNo').value.trim();
+  const phone   = document.getElementById('iPhone').value.trim();
+  const type    = parseInt(SEG.querySelector('.seg-btn.active').dataset.type);
+
+  if (!trackNo) { flash('请输入快递单号'); return; }
+
+  setLoading(true);
+  showSkeleton();
+
+  try {
+    const res = await fetch('/api/route/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trackingType: type, trackingNumber: trackNo, checkPhoneNo: phone })
+    });
+
+    const json = await res.json();
+    if (json.code !== 0) {
+      renderError(json.message || '查询失败');
+      return;
+    }
+
+    renderResults(json.data);
+  } catch(e) {
+    renderError('网络请求失败，请检查服务是否启动：' + e.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+function setLoading(on) {
+  const btn = document.getElementById('btnQuery');
+  document.getElementById('btnText').textContent = on ? '查询中…' : '查 询';
+  document.getElementById('btnIcon').textContent = on ? '⏳' : '🔍';
+  btn.disabled = on;
+}
+
+function showSkeleton() {
+  document.getElementById('result').innerHTML = `
+    <div class="skeleton">
+      <div class="skel-line" style="width:40%"></div>
+      <div class="skel-line" style="width:70%"></div>
+      <div class="skel-line" style="width:55%"></div>
+      <div class="skel-line" style="width:80%;margin-bottom:0"></div>
+    </div>`;
+}
+
+function renderError(msg) {
+  document.getElementById('result').innerHTML = `
+    <div class="error-banner">
+      <span class="error-icon">⚠</span>
+      <span>${esc(msg)}</span>
+    </div>`;
+}
+
+const STATUS_CLASS = {
+  delivered:  'status-delivered',
+  delivering: 'status-delivering',
+  exception:  'status-exception',
+  returning:  'status-returning',
+  transit:    'status-transit',
+  collected:  'status-collected',
+  unknown:    'status-unknown',
+};
+
+function renderResults(data) {
+  if (!data || !data.length) {
+    renderError('未查询到运单信息');
+    return;
+  }
+
+  const html = data.map(r => {
+    const pillClass = STATUS_CLASS[r.statusCode] || 'status-unknown';
+    const tl = (r.routes || []).map((rt, i) => `
+      <div class="t-item">
+        ${i < r.routes.length - 1 ? '<div class="t-line"></div>' : ''}
+        <div class="t-dot-wrap">
+          <div class="t-dot ${rt.isFirst ? 'active' : ''}"></div>
+        </div>
+        <div class="t-body">
+          <div class="t-remark">${esc(rt.remark || rt.opCode || '—')}</div>
+          <div class="t-meta">
+            ${rt.time    ? `<span><span class="ico">🕐</span> ${esc(rt.time)}</span>` : ''}
+            ${rt.address ? `<span><span class="ico">📍</span> ${esc(rt.address)}</span>` : ''}
+          </div>
+        </div>
+      </div>`).join('');
+
+    return `
+      <div class="waybill">
+        <div class="wb-header">
+          <div>
+            <div class="wb-no-label">运单号</div>
+            <div class="wb-no">${esc(r.mailNo)}</div>
+            <div class="wb-total">共 ${r.total} 条轨迹</div>
+          </div>
+          <div class="status-pill ${pillClass}">${esc(r.status)}</div>
+        </div>
+        <div class="timeline">
+          ${tl || '<div class="empty-routes">暂无路由记录</div>'}
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('result').innerHTML = html;
+}
+
+function flash(msg) {
+  const el = document.getElementById('result');
+  el.innerHTML = `<div class="error-banner"><span class="error-icon">ℹ</span><span>${esc(msg)}</span></div>`;
+  setTimeout(() => { if (el.innerHTML.includes(msg)) el.innerHTML = ''; }, 3000);
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
